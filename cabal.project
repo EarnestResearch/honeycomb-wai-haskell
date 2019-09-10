@@ -2,5 +2,5 @@ packages: .
 
 source-repository-package
     type:     git
-    location: https://github.com/EarnestResearch/libhoney-hs
+    location: https://github.com/EarnestResearch/honeycomb-haskell
     tag:      HEAD
