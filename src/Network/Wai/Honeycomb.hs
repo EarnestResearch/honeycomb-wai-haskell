@@ -2,7 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Network.Wai.Honeycomb where
 
-import Control.Monad.Reader (MonadReader)
+import Control.Monad.Reader (MonadReader, ask)
 import Data.ByteString (ByteString)
 import Data.Maybe (fromMaybe)
 import Data.Text.Encoding (decodeUtf8With)
@@ -15,6 +15,7 @@ import UnliftIO
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List as List
 import qualified Data.Text as T
+import qualified Data.Vault.Lazy as V
 
 decodeUtf8Lenient :: ByteString -> T.Text
 decodeUtf8Lenient = decodeUtf8With lenientDecode
@@ -51,11 +52,12 @@ traceApplicationT
        , HasHoney env
        , HasSpanContext env
        )
-    => ServiceName
+    => V.Key env
+    -> ServiceName
     -> SpanName
     -> MiddlewareT m
-traceApplicationT service sp =
-    traceApplicationT' service sp readTraceHeader
+traceApplicationT key service sp =
+    traceApplicationT' key service sp readTraceHeader
   where
     readTraceHeader :: Request -> Maybe SpanReference
     readTraceHeader req = do
@@ -88,13 +90,17 @@ traceApplicationT'
        , HasHoney env
        , HasSpanContext env
        )
-    => ServiceName
+    => V.Key env
+    -> ServiceName
     -> SpanName
     -> (Request -> Maybe SpanReference)
     -> MiddlewareT m
-traceApplicationT' service sp parentSpanRef app req inner =
+traceApplicationT' key service sp parentSpanRef app req inner =
     withNewRootSpan' service sp (parentSpanRef req) $ do
         add getRequestFields
+        env <- ask
+        let vault' = V.insert key env (vault req)
+        let req = req { vault = vault' }
         (\x y -> app x y `catchAny` reportErrorStatus) req (\response -> do
             add (getResponseFields response)
             inner response

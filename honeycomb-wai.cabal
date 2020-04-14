@@ -41,6 +41,8 @@ library
     , unliftio             ^>= 0.2.4.0
     , unordered-containers ^>= 0.2
     , wai                   >= 0.2     && < 3.3
+    , vault
+    , microlens-mtl
 
   -- Directories containing source files.
   hs-source-dirs:      src
